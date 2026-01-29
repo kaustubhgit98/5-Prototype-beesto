@@ -2,6 +2,7 @@
 
 import { useRef, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import { Key, AlertCircle, X, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { TopBar } from "@/components/layout/top-bar";
@@ -143,10 +144,22 @@ function ApiKeyModal({ isOpen, onClose, onSave }: { isOpen: boolean; onClose: ()
     </AnimatePresence>
   );
 }
+  // Show loading state while auth is syncing
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#080808]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+          <p className="text-sm text-white/50">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
 
 function EditorContent() {
   useKeyboardShortcuts();
   const router = useRouter();
+    const { isLoaded, isSignedIn } = useAuth();
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { hasAnyApiKey } = useSettingsStore();
@@ -161,6 +174,14 @@ function EditorContent() {
   const isDraggingChat = useRef(false);
   const isDraggingTerminal = useRef(false);
 
+  // Sync auth state and ensure user is authenticated
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      router.push("/");
+      return;
+    }
+  }, [isLoaded, isSignedIn, router]);
   useEffect(() => {
     if (!hasAnyApiKey()) {
       setShowApiKeyModal(true);
